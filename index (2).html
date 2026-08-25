@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HISPAM Paid Media Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Roboto',Arial,sans-serif;font-size:13px;color:#303036;background:#f5f6f8;min-height:100vh}
+.topbar{background:#213478;padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.topbar-title{color:#fff;font-size:15px;font-weight:600}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.topbar-updated{color:#aab8e0;font-size:11px}
+.btn{border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Roboto',Arial,sans-serif;transition:opacity .15s}
+.btn:hover{opacity:.88}
+.btn-upload{background:#6f93eb;color:#fff}
+.btn-primary{background:#213478;color:#fff}
+.btn-primary:disabled{background:#9898a8;cursor:not-allowed}
+.btn-cancel{background:#f0f0f5;color:#303036}
+.main{padding:28px 32px}
+.section{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#636271;margin:24px 0 12px}
+.kpi-row{display:grid;gap:10px;margin-bottom:20px}
+.c4{grid-template-columns:repeat(4,1fr)}.c5{grid-template-columns:repeat(5,1fr)}
+.kpi{background:#fff;border-radius:8px;padding:14px 16px;box-shadow:-1px 4px 8px 0 rgba(233,233,244,1)}
+.kpi .lbl{font-size:11px;color:#636271;margin-bottom:4px}
+.kpi .val{font-size:20px;font-weight:600;color:#303036;line-height:1.1}
+.chart-card{background:#fff;border-radius:8px;padding:20px;box-shadow:-1px 4px 8px 0 rgba(233,233,244,1);margin-bottom:16px}
+.chart-title{font-size:13px;font-weight:600;color:#303036;margin-bottom:10px}
+.chart-wrap{position:relative;width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:11px;font-weight:600;color:#213478;text-align:right;padding:8px 10px;background:#eff2ff;border-bottom:1px solid #d8dffa;white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:6px 10px;border-bottom:1px solid #f0f0f5;text-align:right;white-space:nowrap}
+td:first-child{text-align:left;color:#636271}
+tr:last-child td{font-weight:600;color:#303036;background:#fafafa;border-bottom:none}
+tr:hover:not(:last-child) td{background:#fafbff}
+.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600}
+.tag-g{background:#e6f9ee;color:#0a7a0a}.tag-w{background:#fff8e6;color:#854f0b}.tag-r{background:#fde8e8;color:#a32d2d}.tag-n{background:#f0f0f5;color:#636271}
+.tabs{display:flex;border-bottom:1.5px solid #d8dffa;margin-bottom:24px}
+.tab{font-size:13px;font-weight:600;padding:10px 20px;cursor:pointer;color:#636271;border-bottom:2.5px solid transparent;margin-bottom:-1.5px}
+.tab.active{color:#213478;border-bottom-color:#213478}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:600}
+.badge-meta{background:#e6eeff;color:#213478}.badge-li{background:#dbeafe;color:#0a66c2}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;color:#9898a8;text-align:center}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+.empty-title{font-size:15px;font-weight:600;color:#636271;margin-bottom:6px}
+.empty-sub{font-size:13px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:28px;width:520px;max-width:95vw;box-shadow:0 8px 32px rgba(33,52,120,.18)}
+.modal h2{font-size:16px;font-weight:600;color:#303036;margin-bottom:4px}
+.modal-sub{font-size:12px;color:#636271;margin-bottom:20px}
+.dz{border:1.5px dashed #b0b8d8;border-radius:8px;padding:18px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbff;position:relative;margin-bottom:12px}
+.dz:hover,.dz.drag-over{border-color:#6f93eb;background:#f0f4ff}
+.dz.loaded{border-color:#1baf7a;border-style:solid;background:#f0faf5}
+.dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-label{font-size:13px;font-weight:600;color:#303036;margin-bottom:2px}
+.dz-sub{font-size:11px;color:#636271}
+.dz-ok{font-size:11px;color:#1baf7a;font-weight:600;margin-top:4px}
+.dz-hint{font-size:10px;color:#9898a8;margin-top:3px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.saving-msg{font-size:12px;color:#636271;margin-top:8px;text-align:center;min-height:18px}
+.setup-banner{background:#fff8e6;border:1px solid #f5d87a;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:12px;color:#5a3a00;display:none}
+.setup-banner strong{color:#303036}
+.setup-banner code{background:#faecc2;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div><div class="topbar-title">HISPAM Paid Media Dashboard</div></div>
+  <div class="topbar-right">
+    <span class="topbar-updated" id="last-updated">Cargando...</span>
+    <button class="btn btn-upload" onclick="openModal()">⬆ Cargar datos</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2>Cargar exports de la semana</h2>
+    <div class="modal-sub">Los datos quedan disponibles para todo el equipo al instante.</div>
+    <div style="font-size:11px;font-weight:600;color:#636271;margin-bottom:6px"><span class="badge badge-meta">META ADS</span> &nbsp;Conjuntos de anuncios (.xlsx)</div>
+    <div class="dz" id="dz-meta"><input type="file" accept=".xlsx" multiple id="inp-meta">
+      <div class="dz-label">📊 Arrastrá o hacé click</div>
+      <div class="dz-sub">Ads Manager → Conjuntos de anuncios → Exportar .xlsx</div>
+      <div class="dz-hint">Podés subir varias semanas a la vez</div>
+      <div class="dz-ok" id="dz-meta-ok"></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:#636271;margin-bottom:6px"><span class="badge badge-li">LINKEDIN ADS</span> &nbsp;Campaign performance (.csv)</div>
+    <div class="dz" id="dz-li"><input type="file" accept=".csv" multiple id="inp-li">
+      <div class="dz-label">💼 Arrastrá o hacé click</div>
+      <div class="dz-sub">Campaign Manager → Exportar → Campaign performance report</div>
+      <div class="dz-hint">Podés subir varias semanas a la vez</div>
+      <div class="dz-ok" id="dz-li-ok"></div>
+    </div>
+    <div class="saving-msg" id="saving-msg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save" onclick="saveData()" disabled>Guardar y publicar</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div id="setup-banner" class="setup-banner"></div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('overview')">Resumen</div>
+    <div class="tab" onclick="showTab('meta')">Meta Ads</div>
+    <div class="tab" onclick="showTab('linkedin')">LinkedIn Ads</div>
+  </div>
+  <div id="tab-overview"></div>
+  <div id="tab-meta" style="display:none"></div>
+  <div id="tab-linkedin" style="display:none"></div>
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// Completar después del setup (ver instrucciones en README.md)
+const CFG = {
+  owner: '',    // tu usuario de GitHub, ej: 'aylen-arena'
+  repo:  '',    // nombre del repo, ej: 'hispam-dashboard'
+  token: '',    // Personal Access Token con permisos repo
+  file:  'data/dashboard-data.json'
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GRID='#e8e8f0', TICK='#636271', FONT={size:11,family:'Roboto'};
+const ST = { meta:null, li:null, charts:{}, pm:null, pl:null };
+
+function showTab(t) {
+  ['overview','meta','linkedin'].forEach((id,i)=>{
+    document.getElementById('tab-'+id).style.display=id===t?'':'none';
+    document.querySelectorAll('.tab')[i].classList.toggle('active',id===t);
+  });
+}
+function openModal(){ document.getElementById('modal').classList.add('open'); }
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  ST.pm=null; ST.pl=null;
+  ['dz-meta','dz-li'].forEach(id=>document.getElementById(id).classList.remove('loaded'));
+  ['dz-meta-ok','dz-li-ok'].forEach(id=>document.getElementById(id).textContent='');
+  document.getElementById('btn-save').disabled=true;
+  document.getElementById('saving-msg').textContent='';
+}
+function checkSave(){ document.getElementById('btn-save').disabled=!(ST.pm||ST.pl); }
+
+function setupDZ(dzId,inpId,handler){
+  const dz=document.getElementById(dzId), inp=document.getElementById(inpId);
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');handler([...e.dataTransfer.files]);});
+  inp.addEventListener('change',()=>handler([...inp.files]));
+}
+setupDZ('dz-meta','inp-meta',files=>processMeta(files));
+setupDZ('dz-li','inp-li',files=>processLI(files));
+
+// ── META ─────────────────────────────────────────────────────────────────────
+function pn(s){ return parseFloat(String(s||'0').replace(/[^0-9.-]/g,''))||0; }
+function getCamp(s){
+  s=String(s);
+  if(/bof_others/.test(s)) return 'BOF Others';
+  if(/tofu_others|tof_others/.test(s)) return 'TOFU Others';
+  if(/bof_ar/.test(s)) return 'BOF ARG';
+  if(/tof_arg/.test(s)) return 'TOF ARG';
+  if(/bof_mx_2026-06|bof_mx_2026-08/.test(s)) return 'BOF MX';
+  if(/tof_mx/.test(s)) return 'TOF MX';
+  if(/bof_co/.test(s)) return 'BOF CO';
+  if(/tofu_co/.test(s)) return 'TOFU CO';
+  if(/reformalaboral|reforma|vid-ugc/i.test(s)) return 'Reforma Laboral MX';
+  if(/ebook/i.test(s)) return 'Ebook Retail';
+  return null;
+}
+
+function processMeta(files){
+  const all=[]; let pending=files.length;
+  files.forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''}).forEach(row=>all.push(row));
+      if(--pending===0){
+        ST.pm=aggMeta(all);
+        document.getElementById('dz-meta-ok').textContent=`✓ ${files.length} archivo(s) procesado(s)`;
+        document.getElementById('dz-meta').classList.add('loaded');
+        checkSave();
+      }
+    };
+    r.readAsArrayBuffer(f);
+  });
+}
+
+function aggMeta(rows){
+  const parsed=rows.map(r=>({
+    name:String(r['Nombre del conjunto de anuncios']||''),
+    spend:pn(r['Importe gastado (ARS)']),leads:pn(r['Resultados']),
+    impr:pn(r['Impresiones']),clicks:pn(r['Clics en el enlace']),
+    isLead:/leadgen|offsite_conv/i.test(String(r['Indicador de resultado']||''))
+  })).filter(r=>r.name&&r.spend>0);
+  const lr=parsed.filter(r=>r.isLead);
+  const totalSpend=parsed.reduce((s,r)=>s+r.spend,0);
+  const totalLeads=lr.reduce((s,r)=>s+r.leads,0);
+  const leadSpend=lr.reduce((s,r)=>s+r.spend,0);
+  const impr=parsed.reduce((s,r)=>s+r.impr,0);
+  const clicks=parsed.reduce((s,r)=>s+r.clicks,0);
+  const byCamp={},bySet={};
+  lr.forEach(r=>{
+    const c=getCamp(r.name);
+    if(c){if(!byCamp[c])byCamp[c]={leads:0,spend:0};byCamp[c].leads+=r.leads;byCamp[c].spend+=r.spend;}
+    if(!bySet[r.name])bySet[r.name]={leads:0,spend:0};
+    bySet[r.name].leads+=r.leads;bySet[r.name].spend+=r.spend;
+  });
+  Object.values(bySet).forEach(s=>{s.cpl=s.leads>0?s.spend/s.leads:0;});
+  return{totalSpend,totalLeads,cpl:totalLeads>0?leadSpend/totalLeads:0,impr,clicks,ctr:impr>0?clicks/impr*100:0,byCamp,bySet};
+}
+
+// ── LINKEDIN ─────────────────────────────────────────────────────────────────
+function processLI(files){
+  const all=[]; let pending=files.length;
+  files.forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const bytes=new Uint8Array(e.target.result);
+      const content=(bytes[0]===0xFF&&bytes[1]===0xFE)?new TextDecoder('utf-16le').decode(e.target.result):new TextDecoder('utf-8').decode(e.target.result);
+      parseLICSV(content).forEach(row=>all.push(row));
+      if(--pending===0){
+        ST.pl=aggLI(all);
+        document.getElementById('dz-li-ok').textContent=`✓ ${files.length} archivo(s) procesado(s)`;
+        document.getElementById('dz-li').classList.add('loaded');
+        checkSave();
+      }
+    };
+    r.readAsArrayBuffer(f);
+  });
+}
+
+function parseLICSV(content){
+  const lines=content.split('\n');
+  let hi=0;
+  for(let i=0;i<lines.length;i++){if(/nombre del lote|campaign group|ad set/i.test(lines[i])){hi=i;break;}}
+  const sep=lines[hi].includes('\t')?'\t':',';
+  const headers=lines[hi].split(sep).map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(hi+1).filter(l=>l.trim()).map(l=>{
+    const cells=l.split(sep).map(c=>c.trim().replace(/^"|"$/g,''));
+    const row={};headers.forEach((h,j)=>{row[h]=cells[j]||'';});return row;
+  });
+}
+
+function aggLI(rows){
+  if(!rows.length) return {totalSpend:0,totalLeads:0,cpl:0,bySet:{}};
+  const sample=rows[0],keys=Object.keys(sample);
+  const col=n=>keys.find(k=>k.toLowerCase().includes(n.toLowerCase()))||'';
+  const setCol=col('lote')||col('set')||col('group');
+  const spendCol=col('gasto')||col('spend')||col('cost');
+  const leadsCol=col('posibles contactos')||col('leads');
+  const formOpenCol=col('formularios de posibles')||col('form open');
+  const lpCol=col('clics a la p')||col('landing page')||col('lp click');
+  const imprCol=col('impresiones')||col('impression');
+  const clicksCol=col('clics')||col('clicks');
+  const vvCol=col('visualizaciones del v')||col('video view');
+  const bySet={};
+  rows.forEach(r=>{
+    const name=r[setCol]||'';if(!name)return;
+    const spend=parseFloat(String(r[spendCol]||'0').replace(',','.'))||0;if(!spend)return;
+    if(!bySet[name])bySet[name]={spend:0,leads:0,formOpens:0,lpClicks:0,impr:0,clicks:0,videoViews:0};
+    const s=bySet[name];
+    s.spend+=spend;
+    s.leads+=parseFloat(String(r[leadsCol]||'0').replace(',','.'))||0;
+    s.formOpens+=parseFloat(String(r[formOpenCol]||'0').replace(',','.'))||0;
+    s.lpClicks+=parseFloat(String(r[lpCol]||'0').replace(',','.'))||0;
+    s.impr+=parseFloat(String(r[imprCol]||'0').replace(',','.'))||0;
+    s.clicks+=parseFloat(String(r[clicksCol]||'0').replace(',','.'))||0;
+    s.videoViews+=parseFloat(String(r[vvCol]||'0').replace(',','.'))||0;
+  });
+  Object.values(bySet).forEach(s=>{
+    s.cpl=s.leads>0?s.spend/s.leads:null;
+    s.formCvr=s.formOpens>0?s.leads/s.formOpens*100:null;
+    s.ctr=s.impr>0?s.clicks/s.impr*100:null;
+    s.vtr=s.impr>0?s.videoViews/s.impr*100:null;
+    s.cpc=s.clicks>0?s.spend/s.clicks:null;
+  });
+  const ls=Object.values(bySet).filter(s=>s.leads>0);
+  const totalSpend=Object.values(bySet).reduce((s,r)=>s+r.spend,0);
+  const totalLeads=ls.reduce((s,r)=>s+r.leads,0);
+  return{totalSpend,totalLeads,cpl:totalLeads>0?ls.reduce((s,r)=>s+r.spend,0)/totalLeads:0,bySet};
+}
+
+// ── GITHUB ───────────────────────────────────────────────────────────────────
+async function ghFetch(method,body){
+  const res=await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${CFG.file}`,{
+    method,headers:{'Authorization':'token '+CFG.token,'Content-Type':'application/json'},
+    body:body?JSON.stringify(body):undefined
+  });
+  return res;
+}
+
+async function getSHA(){
+  try{
+    const res=await ghFetch('GET');
+    if(!res.ok)return null;
+    return (await res.json()).sha||null;
+  }catch{return null;}
+}
+
+async function loadFromGitHub(){
+  if(!CFG.owner||!CFG.repo)return null;
+  try{
+    const url=`https://raw.githubusercontent.com/${CFG.owner}/${CFG.repo}/main/${CFG.file}?t=${Date.now()}`;
+    const res=await fetch(url);
+    if(!res.ok)return null;
+    const j=await res.json();
+    return (j&&j.meta||j&&j.li)?j:null;
+  }catch{return null;}
+}
+
+async function saveData(){
+  const btn=document.getElementById('btn-save'),msg=document.getElementById('saving-msg');
+  btn.disabled=true; msg.textContent='Guardando en GitHub...';
+  const existing=await loadFromGitHub();
+  const payload={
+    meta:ST.pm||existing?.meta||null,
+    li:ST.pl||existing?.li||null,
+    updatedAt:new Date().toISOString()
+  };
+  try{
+    const sha=await getSHA();
+    const body={message:`Dashboard update ${new Date().toLocaleDateString('es-AR')}`,
+      content:btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))))};
+    if(sha)body.sha=sha;
+    const res=await ghFetch('PUT',body);
+    if(!res.ok)throw new Error(`GitHub ${res.status}: ${await res.text()}`);
+    msg.textContent='✓ Datos publicados. El equipo ya puede verlos.';
+    ST.meta=payload.meta; ST.li=payload.li;
+    document.getElementById('last-updated').textContent='Actualizado: '+new Date().toLocaleString('es-AR');
+    render();
+    setTimeout(closeModal,1500);
+  }catch(e){
+    msg.textContent='⚠ Error: '+e.message;
+    btn.disabled=false;
+  }
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function dc(k){if(ST.charts[k]){ST.charts[k].destroy();delete ST.charts[k];}}
+const fmtARS=n=>n==null||isNaN(n)?'—':'ARS '+Math.round(n).toLocaleString('es-AR');
+const fmtInt=n=>n==null||isNaN(n)?'—':Math.round(n).toLocaleString('es-AR');
+const fmtPct=n=>n==null||isNaN(n)?'—':parseFloat(n).toFixed(2)+'%';
+const cplM=v=>{if(!v)return'—';const c=v<30000?'tag-g':v<60000?'tag-w':'tag-r';return`<span class="tag ${c}">${fmtARS(v)}</span>`;};
+const cplL=v=>{if(!v)return'—';const c=v<15?'tag-g':v<30?'tag-w':'tag-r';return`<span class="tag ${c}">USD ${v.toFixed(2)}</span>`;};
+const CAMP_COLORS=['#2a78d6','#1baf7a','#eb6834','#eda100','#e87ba4','#4a3aa7','#e34948','#6f93eb','#b0aeba','#38bdf8'];
+
+function render(){ renderOverview(); renderMeta(); renderLI(); }
+
+function renderOverview(){
+  const el=document.getElementById('tab-overview');
+  const hm=!!ST.meta, hl=!!ST.li;
+  if(!hm&&!hl){el.innerHTML=`<div class="empty"><div class="empty-icon">📂</div><div class="empty-title">Sin datos cargados</div><div class="empty-sub">Hacé click en "Cargar datos" para subir los exports de Meta y/o LinkedIn</div></div>`;return;}
+  let html='';
+  if(hm){
+    const m=ST.meta;
+    const CAMPS=['TOFU Others','BOF Others','TOF ARG','Reforma Laboral MX','BOF MX','BOF CO','TOF MX','BOF ARG','TOFU CO','Ebook Retail'];
+    const cr=CAMPS.map((c,i)=>({name:c,color:CAMP_COLORS[i],...(m.byCamp[c]||{leads:0,spend:0})})).filter(r=>r.leads>0).sort((a,b)=>b.leads-a.leads);
+    html+=`<div class="section" style="margin-top:0"><span class="badge badge-meta">META ADS</span></div>
+    <div class="kpi-row c5">
+      <div class="kpi"><div class="lbl">Spend</div><div class="val" style="font-size:16px">${fmtARS(m.totalSpend)}</div></div>
+      <div class="kpi"><div class="lbl">Leads BOF</div><div class="val">${fmtInt(m.totalLeads)}</div></div>
+      <div class="kpi"><div class="lbl">CPL</div><div class="val" style="font-size:16px">${fmtARS(m.cpl)}</div></div>
+      <div class="kpi"><div class="lbl">Impresiones</div><div class="val" style="font-size:16px">${fmtInt(m.impr)}</div></div>
+      <div class="kpi"><div class="lbl">CTR</div><div class="val">${fmtPct(m.ctr)}</div></div>
+    </div>
+    <div class="grid2">
+      <div class="chart-card"><div class="chart-title">Leads por campaña</div><div class="chart-wrap" style="height:200px"><canvas id="ov-mc"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">CPL por campaña (ARS)</div><div class="chart-wrap" style="height:200px"><canvas id="ov-mcp"></canvas></div></div>
+    </div>`;
+    setTimeout(()=>{
+      dc('ov-mc');dc('ov-mcp');
+      ST.charts['ov-mc']=new Chart(document.getElementById('ov-mc'),{type:'bar',data:{labels:cr.map(r=>r.name),datasets:[{data:cr.map(r=>r.leads),backgroundColor:cr.map(r=>r.color),borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:TICK,font:FONT},grid:{color:GRID},border:{display:false}},y:{ticks:{color:TICK,font:{...FONT,size:10}},grid:{display:false},border:{display:false}}}}});
+      ST.charts['ov-mcp']=new Chart(document.getElementById('ov-mcp'),{type:'bar',data:{labels:cr.map(r=>r.name),datasets:[{data:cr.map(r=>r.spend>0&&r.leads>0?r.spend/r.leads:0),backgroundColor:cr.map(r=>{const v=r.spend/r.leads;return v<30000?'#1baf7a':v<60000?'#eda100':'#e34948';}),borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'ARS '+Math.round(ctx.parsed.x).toLocaleString('es-AR')}}},scales:{x:{ticks:{color:TICK,font:FONT,callback:v=>'ARS '+Math.round(v/1000)+'K'},grid:{color:GRID},border:{display:false}},y:{ticks:{color:TICK,font:{...FONT,size:10}},grid:{display:false},border:{display:false}}}}});
+    },50);
+  }
+  if(hl){
+    const l=ST.li;
+    const ls=Object.entries(l.bySet).filter(([,s])=>s.leads>0).sort((a,b)=>b[1].leads-a[1].leads).slice(0,6);
+    const vs=Object.entries(l.bySet).filter(([,s])=>s.videoViews>0).sort((a,b)=>b[1].videoViews-a[1].videoViews);
+    html+=`<div class="section"><span class="badge badge-li">LINKEDIN ADS</span></div>
+    <div class="kpi-row c4">
+      <div class="kpi"><div class="lbl">Spend</div><div class="val">USD ${l.totalSpend.toFixed(0)}</div></div>
+      <div class="kpi"><div class="lbl">Leads</div><div class="val">${fmtInt(l.totalLeads)}</div></div>
+      <div class="kpi"><div class="lbl">CPL</div><div class="val">USD ${l.cpl.toFixed(2)}</div></div>
+      <div class="kpi"><div class="lbl">Sets activos</div><div class="val">${Object.keys(l.bySet).length}</div></div>
+    </div>
+    <div class="grid2">
+      <div class="chart-card"><div class="chart-title">Sets leadgen</div><div class="tbl-wrap"><table><thead><tr><th style="text-align:left">Set</th><th>Leads</th><th>CPL</th><th>Form CVR</th></tr></thead><tbody>${ls.map(([n,s])=>`<tr><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${n}">${n.length>30?'…'+n.slice(-30):n}</td><td>${s.leads}</td><td>${cplL(s.cpl)}</td><td>${s.formCvr!=null?s.formCvr.toFixed(1)+'%':'—'}</td></tr>`).join('')}</tbody></table></div></div>
+      ${vs.length?`<div class="chart-card"><div class="chart-title">Video View — VTR por geo</div><div class="chart-wrap" style="height:180px"><canvas id="ov-lv"></canvas></div></div>`:'<div></div>'}
+    </div>`;
+    if(vs.length) setTimeout(()=>{dc('ov-lv');ST.charts['ov-lv']=new Chart(document.getElementById('ov-lv'),{type:'bar',data:{labels:vs.map(([n])=>n.replace(/.*Video-/,'').replace(/-VideoView.*/,'')||n.slice(0,12)),datasets:[{data:vs.map(([,s])=>s.vtr||0),backgroundColor:vs.map(([,s])=>(s.vtr||0)>30?'#1baf7a':'#eda100'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y.toFixed(1)+'%'}}},scales:{x:{ticks:{color:TICK,font:FONT},grid:{color:GRID},border:{display:false}},y:{ticks:{color:TICK,font:FONT,callback:v=>v+'%'},grid:{color:GRID},border:{display:false},min:0,max:45}}}});},50);
+  }
+  el.innerHTML=html;
+}
+
+function renderMeta(){
+  const el=document.getElementById('tab-meta');
+  if(!ST.meta){el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">Sin datos de Meta Ads</div></div>`;return;}
+  const m=ST.meta;
+  const CAMPS=['TOFU Others','BOF Others','TOF ARG','Reforma Laboral MX','BOF MX','BOF CO','TOF MX','BOF ARG','TOFU CO','Ebook Retail'];
+  const cr=CAMPS.map((c,i)=>({name:c,color:CAMP_COLORS[i],...(m.byCamp[c]||{leads:0,spend:0})})).filter(r=>r.leads>0||r.spend>0).sort((a,b)=>b.leads-a.leads);
+  const topSets=Object.entries(m.bySet).sort((a,b)=>b[1].leads-a[1].leads).slice(0,12);
+  el.innerHTML=`<div class="section" style="margin-top:0">KPIs totales</div>
+  <div class="kpi-row c5">
+    <div class="kpi"><div class="lbl">Spend</div><div class="val" style="font-size:16px">${fmtARS(m.totalSpend)}</div></div>
+    <div class="kpi"><div class="lbl">Leads BOF</div><div class="val">${fmtInt(m.totalLeads)}</div></div>
+    <div class="kpi"><div class="lbl">CPL</div><div class="val" style="font-size:16px">${fmtARS(m.cpl)}</div></div>
+    <div class="kpi"><div class="lbl">Impresiones</div><div class="val" style="font-size:16px">${fmtInt(m.impr)}</div></div>
+    <div class="kpi"><div class="lbl">CTR</div><div class="val">${fmtPct(m.ctr)}</div></div>
+  </div>
+  <div class="chart-card"><div class="chart-title">Campañas — leads y CPL</div><div class="tbl-wrap"><table>
+    <thead><tr><th style="text-align:left">Campaña</th><th>Leads</th><th>Spend ARS</th><th>CPL ARS</th><th>% del total</th></tr></thead>
+    <tbody>${cr.map(r=>{const cpl=r.leads>0?r.spend/r.leads:0;return`<tr><td>${r.name}</td><td>${fmtInt(r.leads)}</td><td>${fmtARS(r.spend)}</td><td>${cplM(cpl)}</td><td><div style="display:flex;align-items:center;gap:6px"><div style="height:6px;border-radius:3px;background:#6f93eb;width:${m.totalLeads>0?Math.round(r.leads/m.totalLeads*120):0}px"></div>${m.totalLeads>0?(r.leads/m.totalLeads*100).toFixed(1)+'%':'—'}</div></td></tr>`;}).join('')}
+    <tr><td>TOTAL</td><td>${fmtInt(m.totalLeads)}</td><td>${fmtARS(m.totalSpend)}</td><td>${cplM(m.cpl)}</td><td>100%</td></tr>
+    </tbody></table></div></div>
+  <div class="section">Top conjuntos de anuncios</div>
+  <div class="chart-card" style="padding:0;overflow:hidden"><table>
+    <thead><tr><th style="text-align:left">Conjunto</th><th>Leads</th><th>Spend ARS</th><th>CPL ARS</th></tr></thead>
+    <tbody>${topSets.map(([n,d])=>`<tr><td style="max-width:340px;overflow:hidden;text-overflow:ellipsis" title="${n}">${n}</td><td>${fmtInt(d.leads)}</td><td>${fmtARS(d.spend)}</td><td>${cplM(d.cpl)}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderLI(){
+  const el=document.getElementById('tab-linkedin');
+  if(!ST.li){el.innerHTML=`<div class="empty"><div class="empty-icon">💼</div><div class="empty-title">Sin datos de LinkedIn Ads</div></div>`;return;}
+  const l=ST.li;
+  const ls=Object.entries(l.bySet).filter(([,s])=>s.leads>0).sort((a,b)=>b[1].leads-a[1].leads);
+  const ts=Object.entries(l.bySet).filter(([,s])=>s.lpClicks>0&&s.leads===0).sort((a,b)=>b[1].lpClicks-a[1].lpClicks);
+  const vs=Object.entries(l.bySet).filter(([,s])=>s.videoViews>0).sort((a,b)=>b[1].videoViews-a[1].videoViews);
+  el.innerHTML=`<div class="section" style="margin-top:0">KPIs totales</div>
+  <div class="kpi-row c4">
+    <div class="kpi"><div class="lbl">Spend</div><div class="val">USD ${l.totalSpend.toFixed(0)}</div></div>
+    <div class="kpi"><div class="lbl">Leads</div><div class="val">${fmtInt(l.totalLeads)}</div></div>
+    <div class="kpi"><div class="lbl">CPL</div><div class="val">USD ${l.cpl.toFixed(2)}</div></div>
+    <div class="kpi"><div class="lbl">Sets activos</div><div class="val">${Object.keys(l.bySet).length}</div></div>
+  </div>
+  ${ls.length?`<div class="section">Sets leadgen</div><div class="chart-card" style="padding:0;overflow:hidden"><table>
+    <thead><tr><th style="text-align:left">Set</th><th>Leads</th><th>Spend USD</th><th>CPL USD</th><th>Form opens</th><th>Form CVR</th><th>CTR</th></tr></thead>
+    <tbody>${ls.map(([n,s])=>`<tr><td style="max-width:260px;overflow:hidden;text-overflow:ellipsis" title="${n}">${n.length>42?'…'+n.slice(-42):n}</td><td>${s.leads}</td><td>USD ${s.spend.toFixed(2)}</td><td>${cplL(s.cpl)}</td><td>${fmtInt(s.formOpens)||'—'}</td><td>${s.formCvr!=null?s.formCvr.toFixed(1)+'%':'—'}</td><td>${s.ctr!=null?s.ctr.toFixed(2)+'%':'—'}</td></tr>`).join('')}</tbody>
+  </table></div>`:''}
+  ${ts.length?`<div class="section">Tráfico MOF — LP Clicks</div><div class="chart-card" style="padding:0;overflow:hidden"><table>
+    <thead><tr><th style="text-align:left">Set</th><th>Spend USD</th><th>LP Clicks</th><th>CTR</th><th>CPC USD</th></tr></thead>
+    <tbody>${ts.map(([n,s])=>`<tr><td style="max-width:280px;overflow:hidden;text-overflow:ellipsis" title="${n}">${n.length>45?'…'+n.slice(-45):n}</td><td>USD ${s.spend.toFixed(2)}</td><td>${fmtInt(s.lpClicks)}</td><td>${s.ctr!=null?s.ctr.toFixed(2)+'%':'—'}</td><td>${s.cpc!=null?`<span class="tag ${s.cpc<1.5?'tag-g':s.cpc<2.5?'tag-w':'tag-r'}">USD ${s.cpc.toFixed(2)}</span>`:'—'}</td></tr>`).join('')}</tbody>
+  </table></div>`:''}
+  ${vs.length?`<div class="section">Video View — VTR por geo</div><div class="chart-card"><div class="chart-wrap" style="height:220px"><canvas id="li-vtr-c"></canvas></div></div>`:''}`;
+  if(vs.length) setTimeout(()=>{dc('li-vtr');ST.charts['li-vtr']=new Chart(document.getElementById('li-vtr-c'),{type:'bar',data:{labels:vs.map(([n])=>n.replace(/.*Video-/,'').replace(/-VideoView.*/,'')||n.slice(0,15)),datasets:[{data:vs.map(([,s])=>s.vtr||0),backgroundColor:vs.map(([,s])=>(s.vtr||0)>30?'#1baf7a':'#eda100'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y.toFixed(1)+'%'}}},scales:{x:{ticks:{color:TICK,font:FONT},grid:{color:GRID},border:{display:false}},y:{ticks:{color:TICK,font:FONT,callback:v=>v+'%'},grid:{color:GRID},border:{display:false},min:0,max:45}}}});},50);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+(async()=>{
+  render();
+  if(!CFG.owner||!CFG.repo||!CFG.token){
+    const b=document.getElementById('setup-banner');
+    b.style.display='block';
+    b.innerHTML='<strong>⚙ Setup pendiente:</strong> Completá los valores de <code>CFG</code> en el código del <code>index.html</code> para activar la persistencia. Ver <code>README.md</code> para instrucciones.';
+    document.getElementById('last-updated').textContent='Sin configurar';
+    return;
+  }
+  const data=await loadFromGitHub();
+  if(data){
+    ST.meta=data.meta||null; ST.li=data.li||null;
+    const d=new Date(data.updatedAt);
+    document.getElementById('last-updated').textContent='Actualizado: '+d.toLocaleDateString('es-AR')+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    render();
+  } else {
+    document.getElementById('last-updated').textContent='Sin datos';
+    render();
+  }
+})();
+</script>
+</body>
+</html>
