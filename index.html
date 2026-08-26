@@ -121,11 +121,10 @@ tr:hover:not(:last-child) td{background:#fafbff}
 
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
-// Completar después del setup (ver instrucciones en README.md)
+// Completar solo owner y repo (el token vive en Vercel, no acá)
 const CFG = {
-  owner: 'aylen-arena',
-  repo:  'hispam-dashboard',
-  token: '',
+  owner: 'aylenarena',    // tu usuario de GitHub
+  repo:  'hispam-dashboard',    // nombre del repo
   file:  'data/dashboard-data.json'
 };
 // ─────────────────────────────────────────────────────────────────────────────
@@ -290,23 +289,7 @@ function aggLI(rows){
   return{totalSpend,totalLeads,cpl:totalLeads>0?ls.reduce((s,r)=>s+r.spend,0)/totalLeads:0,bySet};
 }
 
-// ── GITHUB ───────────────────────────────────────────────────────────────────
-async function ghFetch(method,body){
-  const res=await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${CFG.file}`,{
-    method,headers:{'Authorization':'token '+CFG.token,'Content-Type':'application/json'},
-    body:body?JSON.stringify(body):undefined
-  });
-  return res;
-}
-
-async function getSHA(){
-  try{
-    const res=await ghFetch('GET');
-    if(!res.ok)return null;
-    return (await res.json()).sha||null;
-  }catch{return null;}
-}
-
+// ── GITHUB (lectura pública, sin token) ──────────────────────────────────────
 async function loadFromGitHub(){
   if(!CFG.owner||!CFG.repo)return null;
   try{
@@ -318,9 +301,10 @@ async function loadFromGitHub(){
   }catch{return null;}
 }
 
+// ── GUARDAR (vía función serverless — el token vive en Vercel, no acá) ──────
 async function saveData(){
   const btn=document.getElementById('btn-save'),msg=document.getElementById('saving-msg');
-  btn.disabled=true; msg.textContent='Guardando en GitHub...';
+  btn.disabled=true; msg.textContent='Guardando...';
   const existing=await loadFromGitHub();
   const payload={
     meta:ST.pm||existing?.meta||null,
@@ -328,12 +312,13 @@ async function saveData(){
     updatedAt:new Date().toISOString()
   };
   try{
-    const sha=await getSHA();
-    const body={message:`Dashboard update ${new Date().toLocaleDateString('es-AR')}`,
-      content:btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))))};
-    if(sha)body.sha=sha;
-    const res=await ghFetch('PUT',body);
-    if(!res.ok)throw new Error(`GitHub ${res.status}: ${await res.text()}`);
+    const res=await fetch('/api/save-data',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({payload})
+    });
+    const j=await res.json();
+    if(!res.ok)throw new Error(j.error||`Error ${res.status}`);
     msg.textContent='✓ Datos publicados. El equipo ya puede verlos.';
     ST.meta=payload.meta; ST.li=payload.li;
     document.getElementById('last-updated').textContent='Actualizado: '+new Date().toLocaleString('es-AR');
@@ -459,10 +444,10 @@ function renderLI(){
 // ── INIT ─────────────────────────────────────────────────────────────────────
 (async()=>{
   render();
-  if(!CFG.owner||!CFG.repo||!CFG.token){
+  if(!CFG.owner||!CFG.repo){
     const b=document.getElementById('setup-banner');
     b.style.display='block';
-    b.innerHTML='<strong>⚙ Setup pendiente:</strong> Completá los valores de <code>CFG</code> en el código del <code>index.html</code> para activar la persistencia. Ver <code>README.md</code> para instrucciones.';
+    b.innerHTML='<strong>⚙ Setup pendiente:</strong> Completá <code>owner</code> y <code>repo</code> en el bloque <code>CFG</code> del <code>index.html</code>. Ver <code>README.md</code> para instrucciones.';
     document.getElementById('last-updated').textContent='Sin configurar';
     return;
   }
